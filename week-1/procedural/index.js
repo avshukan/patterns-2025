@@ -1,3 +1,5 @@
+'use strict';
+
 const { main } = require('./main');
 
 const { data } = require('../fixture');

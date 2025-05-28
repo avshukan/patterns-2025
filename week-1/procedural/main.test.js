@@ -1,10 +1,13 @@
+'use strict';
+
 const assert = require('assert');
 
 const { main } = require('./main');
 
 const { data } = require('./../fixture');
 
-const expected = `  Lagos             16060303    1171   13712           Nigeria   100
+const expected =
+  `  Lagos             16060303    1171   13712           Nigeria   100
   Delhi             16787941    1484   11313             India    83
   New York City      8537673     784   10892     United States    79
   Sao Paulo         12038175    1521    7914            Brazil    58
