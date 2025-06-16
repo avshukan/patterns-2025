@@ -13,14 +13,19 @@ const Basket = require('./basket');
 
 const main = async (purchase) => {
   const goods = PurchaseIterator.create(purchase);
+
   const basket = new Basket({ limit: 1050 }, (items, total) => {
     console.log(total);
   });
+
   // Hint: call async function without await
   for await (const item of goods) {
     basket.add(item);
   }
-  // Hint: Add backet.end();
+
+  const result = await basket.end();
+
+  console.log('result', { result });
 };
 
 module.exports = main;
