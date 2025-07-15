@@ -1,0 +1,203 @@
+Review my code.
+Focus on:
+
+code cleanliness (readability, simplicity, no duplication);
+
+clean architecture (proper layering, correct dependencies);
+
+GRASP and SOLID principles;
+
+correct use of GoF patterns.
+
+Suggest specific improvements.
+Highlight what is done well.
+Don't rewrite everything — just comment and suggest.
+
+Content of week-2/homework/basket.js
+```
+'use strict';
+
+class Basket {
+    #limit;
+    #onEnd;
+    #addedItems = [];
+    #cancelledItems = [];
+
+    constructor(options = {}, onEnd = () => { }) {
+        this.#limit = options.limit ?? 0;
+
+        this.#onEnd = onEnd;
+    }
+
+    add(item) {
+        if (this.#limit >= item.price) {
+            this.#limit -= item.price;
+            this.#addedItems.push(item);
+        }   else {
+            this.#cancelledItems.push(item);
+        }
+    }
+
+    end() {
+        const items = this.#addedItems;
+        const total = this.#addedItems.reduce(
+            (acc, item) => acc + item.price,
+            0,
+        );
+        const cancelled = this.#cancelledItems;
+        const cart = {
+            items,
+            total,
+            cancelled,
+            then: (onFullfilled) => {
+                this.#onEnd(items, total, cancelled);
+
+                onFullfilled({
+                    items,
+                    total,
+                    cancelled,
+                });
+            },
+        };
+        return cart;
+    }
+}
+
+module.exports = Basket;
+
+```
+
+Content of week-2/homework/index.js
+```
+'use strict';
+
+const purchase = require('../fixture.json');
+
+const main = require('./main');
+
+main(purchase)
+  .then((result) => {
+    console.log('Basket processed successfully:', result);
+  })
+  .catch((error) => {
+    console.error('Error processing basket:', error);
+  });
+
+```
+
+Content of week-2/homework/main.js
+```
+'use strict';
+
+// Create Iterator for given dataset with Symbol.asyncIterator
+// Use for..of to iterate it and pass data to Basket
+// Basket is limited to certain amount
+// After iteration ended Basket should return Thenable
+// to notify us with final list of items, total and
+// escalated errors
+
+const PurchaseIterator = require('./purchase-iterator');
+
+const Basket = require('./basket');
+
+const main = async (purchase) => {
+  const goods = PurchaseIterator.create(purchase);
+
+  const basket = new Basket({ limit: 1050 }, (items, total) => {
+    console.log(total);
+  });
+
+  // Hint: call async function without await
+  for await (const item of goods) {
+    basket.add(item);
+  }
+
+  const result = await basket.end();
+
+  console.log('result', { result });
+};
+
+module.exports = main;
+
+```
+
+Content of week-2/homework/purchase-iterator.js
+```
+'use strict';
+
+const { generateRandomTimeout } = require('./utils');
+
+class PurchaseIterator {
+    #purchases;
+
+    constructor(purchase) {
+        if (!Array.isArray(purchase)) {
+            throw new Error('Purchases must be an array');
+        }
+
+        this.#purchases = purchase;
+    }
+
+    static create(purchase) {
+        return new PurchaseIterator(purchase);
+    }
+
+    [Symbol.asyncIterator]() {
+        let index = 0;
+
+        return {
+            next: async () => {
+                if (index < this.#purchases.length) {
+                    const purchase = this.#purchases[index];
+
+                    // emulate a timeout for each purchase
+                    // if the purchase has a timeout (test case),
+                    // use it, otherwise use a random timeout
+                    const timeout = purchase.timeout ??
+                        generateRandomTimeout(200, 600);
+
+                    console.log('timeout', { timeout });
+
+                    const promise = new Promise((resolve) => setTimeout(() => {
+                        const result = {
+                            value: this.#purchases[index],
+                            done: false,
+                        };
+
+                        resolve(result);
+                    }, timeout));
+
+                    index += 1;
+
+                    return promise;
+                } else {
+                    return {
+                        value: null,
+                        done: true,
+                    };
+                }
+            },
+        };
+    };
+};
+
+module.exports = PurchaseIterator;
+
+```
+
+Content of week-2/homework/utils.js
+```
+'use strict';
+
+const generateRandomTimeout = (min = 1000, max = 2000) => {
+  const timeout = Math.floor(Math.random() * (max - min + 1)) + min;
+
+  return timeout;
+};
+
+module.exports = {
+  generateRandomTimeout,
+};
+
+```
+
